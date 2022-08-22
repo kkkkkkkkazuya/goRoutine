@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"sync"
+	"testing"
 	"time"
 )
 
@@ -12,12 +14,12 @@ func hello(done chan bool) {
 	done <- true
 }
 
-func process(num int, str string) {
-	for i := 0; i <= num; i++ {
-		time.Sleep(1 * time.Second)
-		fmt.Println(num, str)
-	}
-}
+// func process(num int, str string) {
+// 	for i := 0; i <= num; i++ {
+// 		time.Sleep(1 * time.Second)
+// 		fmt.Println(num, str)
+// 	}
+// }
 
 func greeting(data string) {
 	message := make(chan string)
@@ -37,8 +39,8 @@ func flow(num int, str string) {
 
 func main() {
 	fmt.Println("Start")
-	process(1, "A")
-	process(1, "B")
+	// process(1, "A")
+	// process(1, "B")
 	fmt.Println("Finish")
 	greeting("hello")
 
@@ -70,4 +72,35 @@ func main() {
 	fmt.Println("Finish2!")
 	log.Println(runtime.NumGoroutine())
 
+	result := testing.Benchmark(func(b *testing.B) { run("A", "B", "C", "D", "E") })
+	fmt.Println(result.T)
+}
+
+func run(name ...string) {
+	fmt.Println("Start!")
+	// WaitGroupを作成する
+	wg := new(sync.WaitGroup)
+
+	// channelを処理の数分だけ作成する
+	isFin := make(chan bool, len(name))
+
+	for _, v := range name {
+		// 処理1つに対して、1つ数を増やす（この例の場合は5になる）
+		wg.Add(1)
+		// サブスレッドに処理を任せる
+		go process(v, isFin, wg)
+	}
+
+	// wg.Doneが5回通るまでブロックし続ける
+	wg.Wait()
+	close(isFin)
+	fmt.Println("Finish!")
+}
+
+func process(name string, isFin chan bool, wg *sync.WaitGroup) {
+	// wgの数を1つ減らす（この関数が終了した時）
+	defer wg.Done()
+	time.Sleep(2 * time.Second)
+	fmt.Println(name)
+	isFin <- true
 }
