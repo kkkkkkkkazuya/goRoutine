@@ -37,10 +37,9 @@ func flow(num int, str string) {
 
 func main() {
 	fmt.Println("Start")
-	go process(1, "A")
-	go process(1, "B")
+	process(1, "A")
+	process(1, "B")
 	fmt.Println("Finish")
-	log.Println(runtime.NumGoroutine())
 	greeting("hello")
 
 	done := make(chan bool)
@@ -50,8 +49,25 @@ func main() {
 	<-done
 	fmt.Println("last")
 
+	ch1 := make(chan bool)
+	ch2 := make(chan bool)
+
 	fmt.Println("Start2!")
-	go process(2, "A")
-	go process(2, "B")
+
+	go func() {
+		flow(2, "A")
+		ch1 <- true
+	}()
+
+	go func() {
+		flow(2, "B")
+		ch2 <- true
+	}()
+
+	<-ch1
+	<-ch2
+
 	fmt.Println("Finish2!")
+	log.Println(runtime.NumGoroutine())
+
 }
